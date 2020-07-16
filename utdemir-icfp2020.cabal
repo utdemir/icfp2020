@@ -19,7 +19,7 @@ common common-args
                     , http-conduit
                     , utf8-string
 
-executable utdemir-icfp2020
+executable main
   import:             common-args
   main-is:            Main.hs
   hs-source-dirs:     src
