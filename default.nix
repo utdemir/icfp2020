@@ -1,18 +1,39 @@
-{ compiler ? "ghc8101" }:
-
 let
   sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs {};
+  pkgsOrig =
+    let
+      basePkgs = import sources.nixpkgs {};
+      patched = basePkgs.applyPatches {
+        name = "nixpkgs-patched";
+        src = sources.nixpkgs;
+        patches = [
+          ./patches/0001-Revert-ghc-8.6.3-binary-8.6.5-binary.patch
+        ];
+      };
+    in
+      import patched { config.allowBroken = true; };
 
-  gitignore = pkgs.nix-gitignore.gitignoreSourcePure [ ./.gitignore ];
+  pkgsMusl = pkgsOrig.pkgsMusl;
 
-  myHaskellPackages = pkgs.haskell.packages.${compiler}.override {
+  gitignore = pkgsOrig.nix-gitignore.gitignoreSourcePure [ ./.gitignore ];
+
+  staticLibs = with pkgsMusl; [
+    zlib.static
+    (libffi.override { stdenv = makeStaticLibraries stdenv; })
+    (gmp.override { withStatic = true; })
+  ];
+
+  myHaskellPackages = pkgsMusl.haskell.packages.ghc8101.override {
     overrides = hself: hsuper: {
       "utdemir-icfp2020" =
-        hself.callCabal2nix
-          "utdemir-icfp2020"
-          (gitignore ./.)
-          {};
+       let orig = hself.callCabal2nix
+            "utdemir-icfp2020"
+            (gitignore ./.)
+            {};
+      in
+        pkgsMusl.haskell.lib.overrideCabal orig (_: {
+          extraLibraries = staticLibs;
+        });
     };
   };
 
@@ -20,18 +41,17 @@ let
     packages = p: [
       p."utdemir-icfp2020"
     ];
-    buildInputs = with pkgs.haskellPackages; [
+    buildInputs = [
       myHaskellPackages.cabal-install
-      ghcid
-      ormolu
-      hlint
-      (import sources.niv {}).niv
-      pkgs.nixpkgs-fmt
+      pkgsOrig.haskellPackages.ghcid
+      pkgsOrig.haskellPackages.ormolu
+      pkgsOrig.haskellPackages.steeloverseer
+      pkgsOrig.nixpkgs-fmt
     ];
     withHoogle = false;
   };
 
-  exe = pkgs.haskell.lib.justStaticExecutables (myHaskellPackages."utdemir-icfp2020");
+  exe = pkgsMusl.haskell.lib.justStaticExecutables (myHaskellPackages."utdemir-icfp2020");
 in
 {
   inherit shell;
