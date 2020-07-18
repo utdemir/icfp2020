@@ -18,6 +18,9 @@ common common-args
                     , aeson
                     , http-conduit
                     , utf8-string
+                    , attoparsec
+                    , split
+                    , containers
 
 executable main
   import:             common-args
