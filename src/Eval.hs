@@ -42,10 +42,11 @@ data Term
 
 parseAndEval :: String -> String -> Object
 parseAndEval program term =
-  let parsed = parse program
-      simple = simpleProgram parsed
-      result = resolve (eval simple) (TermRef term)
-   in result
+  let env = parseAndEvalEnv program
+   in resolve env (TermRef term)
+
+parseAndEvalEnv :: String -> Env
+parseAndEvalEnv = eval . simpleProgram . parse
 
 eval :: [ParsedDefinition] -> Env
 eval parsed =
@@ -107,12 +108,10 @@ eval parsed =
                 TermObject . ObjectPartial $ \x2 ->
                   apply env (apply env x0 x2) (apply env x1 x2)
        in ret : stack
-    go env stack TokenIsNil =
+    go env stack TokenIsNil = TermObject (objectIsNil env) : stack
+    go env stack TokenDraw =
       let ret =
-            TermObject . ObjectPartial $ \x0 ->
-              apply env x0 $ TermObject . ObjectPartial $ \_ ->
-                TermObject . ObjectPartial $ \_ ->
-                  TermObject objectF
+            TermObject . ObjectPartial $ \c_0 -> undefined
        in ret : stack
     go _ _ other = error $ "unknown token: " ++ show other
 
@@ -140,6 +139,13 @@ objectCar env = ObjectPartial $ \o1 -> apply env o1 (TermObject objectT)
 
 objectCdr :: Env -> Object
 objectCdr env = ObjectPartial $ \o1 -> apply env o1 (TermObject objectF)
+
+objectIsNil :: Env -> Object
+objectIsNil env =
+  ObjectPartial $ \x0 ->
+    apply env x0 $ TermObject . ObjectPartial $ \_ ->
+      TermObject . ObjectPartial $ \_ ->
+        TermObject objectF
 
 liftToTerm :: (Term -> Term) -> Term
 liftToTerm f = TermObject . ObjectPartial $ \p -> f p
@@ -170,10 +176,35 @@ numPred2 env f = liftToTerm2 $ \t1 t2 ->
       TermObject $ if f n1 n2 then objectT else objectF
     _ -> error $ "weird args: " ++ show (t1, t2)
 
+toHsVec :: Env -> Object -> (Object -> a) -> [a]
+toHsVec env vec conv =
+  let isEmpty = apply env (TermObject $ objectIsNil env) (TermObject vec)
+   in if toHsBool env (resolve env isEmpty)
+        then []
+        else
+          let head = apply env (TermObject $ objectCar env) (TermObject vec)
+              tail = apply env (TermObject $ objectCdr env) (TermObject vec)
+           in conv (resolve env head) : toHsVec env (resolve env tail) conv
+
+toHsBool :: Env -> Object -> Bool
+toHsBool env obj =
+  let b =
+        apply2
+          env
+          (TermObject obj)
+          (TermObject $ ObjectAtom $ AtomNum 1)
+          (TermObject $ ObjectAtom $ AtomNum 0)
+   in case b of
+        TermObject (ObjectAtom (AtomNum d)) -> if d == 1 then True else False
+        err -> error $ "expecting a boolean, but got: " ++ show err
+
 apply :: HasCallStack => Env -> Term -> Term -> Term
 apply env f g = case resolve env f of
   ObjectPartial f' -> f' g
   err -> error $ "expecting a function, but got: " ++ show err
+
+apply2 :: HasCallStack => Env -> Term -> Term -> Term -> Term
+apply2 env f p1 p2 = apply env (apply env f p1) p2
 
 resolve :: Env -> Term -> Object
 resolve env obj@(TermObject k) = k
