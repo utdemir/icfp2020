@@ -11,11 +11,7 @@ import System.IO
 
 main = do
   input <- readFile "galaxy.txt"
-  -- input <- readFile "simple.txt"
-  let parsed = parse input
-      simple = simpleProgram parsed
-  -- print simple
-  let env = eval simple
+  let env = parseAndEvalEnv input
       r = find (\d -> dLhs d == "galaxy") env
   hPutStrLn stderr $ "Result: " ++ show r
 

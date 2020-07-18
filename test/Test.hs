@@ -78,6 +78,12 @@ prop_vecToList =
     (\env obj -> toHsVec env obj (\(ObjectAtom (AtomNum n)) -> n))
     [1, 2, 3]
 
+prop_draw =
+  assertHs
+    ["galaxy = ap draw ap ap cons ap ap vec 5 3 ap ap cons ap ap vec 6 3 ap ap cons ap ap vec 4 4 ap ap cons ap ap vec 6 4 ap ap cons ap ap vec 4 5 nil"]
+    (\_ (ObjectAtom (AtomPicture coords)) -> coords)
+    [(5, 3), (6, 3), (4, 4), (6, 4), (4, 5)]
+
 -- prop_vecToList =
 --   withTests 1 . property $
 --     let program = "galaxy = ap ap cons 1 ap ap cons 2 ap ap cons 3 nil"

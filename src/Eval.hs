@@ -110,8 +110,10 @@ eval parsed =
        in ret : stack
     go env stack TokenIsNil = TermObject (objectIsNil env) : stack
     go env stack TokenDraw =
-      let ret =
-            TermObject . ObjectPartial $ \c_0 -> undefined
+      let ret = TermObject . ObjectPartial $ \obj ->
+            let ls = toHsVec env (resolve env obj) parseItem
+                parseItem = toHsNumPair env
+             in TermObject . ObjectAtom . AtomPicture $ ls
        in ret : stack
     go _ _ other = error $ "unknown token: " ++ show other
 
@@ -195,8 +197,16 @@ toHsBool env obj =
           (TermObject $ ObjectAtom $ AtomNum 1)
           (TermObject $ ObjectAtom $ AtomNum 0)
    in case b of
-        TermObject (ObjectAtom (AtomNum d)) -> if d == 1 then True else False
+        TermObject (ObjectAtom (AtomNum d)) -> d == 1
         err -> error $ "expecting a boolean, but got: " ++ show err
+
+toHsNumPair :: Env -> Object -> (Int, Int)
+toHsNumPair env obj =
+  let fst = apply env (TermObject $ objectCar env) (TermObject obj)
+      snd = apply env (TermObject $ objectCdr env) (TermObject obj)
+   in case (resolve env fst, resolve env snd) of
+        (ObjectAtom (AtomNum a), ObjectAtom (AtomNum b)) -> (a, b)
+        err -> error $ "expecting a pair, but got: " ++ show err
 
 apply :: HasCallStack => Env -> Term -> Term -> Term
 apply env f g = case resolve env f of
