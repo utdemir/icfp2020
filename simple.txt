@@ -1,3 +1,1 @@
-galaxy = ap cdr ap car vec_example
-add_example = ap ap add 1 2
-vec_example = ap ap cons ap ap vec 1 2 nil
+utku = galaxy

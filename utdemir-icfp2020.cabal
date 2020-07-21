@@ -13,6 +13,9 @@ build-type:          Simple
 
 common common-args
   default-language:   Haskell2010
+  other-modules:      Parse
+                    , Eval
+                    , Util
   build-depends:      base
                     , bytestring
                     , aeson
@@ -21,6 +24,7 @@ common common-args
                     , attoparsec
                     , split
                     , containers
+                    , gloss
 
 executable main
   import:             common-args

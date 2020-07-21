@@ -1,18 +1,21 @@
 { compiler ? "ghc8101" }:
-
 let
   sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs {};
+  pkgs = import sources.nixpkgs { };
 
   gitignore = pkgs.nix-gitignore.gitignoreSourcePure [ ./.gitignore ];
 
   myHaskellPackages = pkgs.haskell.packages.${compiler}.override {
     overrides = hself: hsuper: {
       "utdemir-icfp2020" =
-        hself.callCabal2nix
-          "utdemir-icfp2020"
-          (gitignore ./.)
-          {};
+        let orig =
+          hself.callCabal2nix
+            "utdemir-icfp2020"
+            (gitignore ./.) { };
+        in
+        pkgs.haskell.lib.overrideCabal orig (_: {
+          extraLibraries = [ pkgs.mesa ];
+        });
     };
   };
 
@@ -25,7 +28,7 @@ let
       ghcid
       ormolu
       hlint
-      (import sources.niv {}).niv
+      (import sources.niv { }).niv
       pkgs.nixpkgs-fmt
     ];
     withHoogle = false;

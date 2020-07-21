@@ -10,7 +10,7 @@ data Equation = Equation {eLhs :: [Token], eRhs :: [Token]}
   deriving (Show)
 
 data Token
-  = TokenNum Int
+  = TokenNum Integer
   | TokenNil
   | TokenCons
   | TokenVec
@@ -20,6 +20,7 @@ data Token
   | TokenDec
   | TokenInc
   | TokenDraw
+  | TokenMultipleDraw
   | TokenUnknown String
   | TokenC
   | TokenB
@@ -72,4 +73,5 @@ parseToken "cdr" = TokenCdr
 parseToken "dec" = TokenDec
 parseToken "inc" = TokenInc
 parseToken "draw" = TokenDraw
+parseToken "multipledraw" = TokenMultipleDraw
 parseToken o = TokenUnknown o
